@@ -39,7 +39,7 @@ public class UserProfileFragment extends Fragment implements OnCLickListener {
     @Override
     public void onStart() {
         super.onStart();
-        viewModel.observeUserList().observe(this, this::consumeResponse);
+      //  viewModel.observeUserList().observe(this, this::consumeResponse);
     }
 
     private void consumeResponse(Resource resource) {
@@ -94,7 +94,31 @@ public class UserProfileFragment extends Fragment implements OnCLickListener {
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(layoutManager);
 
-        viewModel = ViewModelProviders.of(this).get(UserProfileViewModel.class);
+        viewModel = UserProfileViewModel.create(getActivity());
+        MyApplication.getAppComponent().inject(viewModel);
+        viewModel.getResult().observe(this, new Observer<Resource<List<User>>>() {
+            @Override
+            public void onChanged(@Nullable Resource<List<User>> repoResponseResource) {
+               // view.loading(false);
+
+                switch (repoResponseResource.getCurrentState()){
+                    case LOADING: //loading
+                        break;
+                    case ERROR:
+                        Log.e("Error", repoResponseResource.getException().getMessage(), repoResponseResource.getException());
+                        Toast.makeText(getContext(), "Error", Toast.LENGTH_LONG).show();
+                        break;
+                    case SUCCESS:
+                        List<User> userList = repoResponseResource.getData();
+                        users.addAll(userList);
+                        adapter.notifyDataSetChanged();
+                       // view.bind(data.getList(), data.getPage(), data.getLimit());
+                        break;
+                }
+            }
+        });
+       /* viewModel = ViewModelProviders.of(this).get(UserProfileViewModel.class);
+        viewModel.getResult().observe(this, this::consumeResponse);*/
         //to observe the data and update the UI:
        /* viewModel.getUser().observe(this, new Observer<List<User>>() {
             @Override
