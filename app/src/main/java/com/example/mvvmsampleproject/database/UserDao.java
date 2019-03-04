@@ -1,4 +1,6 @@
-package com.example.mvvmsampleproject;
+package com.example.mvvmsampleproject.database;
+
+import com.example.mvvmsampleproject.database.entity.User;
 
 import java.util.List;
 
@@ -14,12 +16,12 @@ public interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void save(List<User> users);
 
-    @Query("SELECT * FROM user WHERE id = :id")
-    LiveData<User> load(String id);
+    @Query("SELECT * FROM users WHERE id = :id")
+    LiveData<User> load(int id);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAllUser(User... users);
 
-    @Query("SELECT * FROM user ")
-    LiveData<List<User>> getUsers();
+    @Query("SELECT * FROM users ")
+    LiveData<List<User>> loadUsers();
 }

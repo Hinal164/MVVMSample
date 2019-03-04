@@ -1,9 +1,12 @@
-package com.example.mvvmsampleproject;
+package com.example.mvvmsampleproject.repository;
 
-import android.util.Log;
+import com.example.mvvmsampleproject.NetworkBoundResource;
+import com.example.mvvmsampleproject.Resource;
+import com.example.mvvmsampleproject.Webservice;
+import com.example.mvvmsampleproject.database.UserDao;
+import com.example.mvvmsampleproject.database.entity.User;
 
 import java.util.List;
-import java.util.concurrent.Executor;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -11,12 +14,7 @@ import javax.inject.Singleton;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 @Singleton
 public class UserRepository {
@@ -57,46 +55,76 @@ public class UserRepository {
          return data;
      }
  */
-    private Webservice webservice;
-    private UserDao userDao;
-    private Executor executor;
-    private UserDatabase userDatabase;
+
+    private final UserDao userDao;
+    private final Webservice webservice;
 
     @Inject
-    public UserRepository(Webservice webservice, UserDao userDao, Executor executor) {
-        this.webservice = webservice;
+    UserRepository(UserDao userDao,Webservice webservice) {
         this.userDao = userDao;
-        this.executor = executor;
+        this.webservice = webservice;
     }
-    public LiveData<Resource<List<User>>> browseRepo() {
-        LiveData<Resource<List<User>>> liveData = new NetworkBoundResource<List<User>, List<User>>() {
+
+    /**
+     * This method fetches the popular articles from the service.
+     * Once the fetching is done the data is cached to local db so that the app can even work offline
+     *
+     * @return List of articles
+     */
+    public LiveData<Resource<List<User>>> loadUsers() {
+        return new NetworkBoundResource<List<User>, List<User>>() {
+
             @Override
-            protected void saveCallResult(@NonNull List<User> items) {
-                User[] arr = new User[items.size()];
-                items.toArray(arr);
-                userDatabase.userDao().insertAllUser(arr);
+            protected void saveCallResult(List<User> item) {
+                if(item!=null)
+                    userDao.save(item);
             }
 
             @Override
             protected boolean shouldFetch(@Nullable List<User> data) {
-                return true;//let's always refresh to be up to date. data == null || data.isEmpty();
+                return data == null || data.isEmpty() ;
+
             }
 
             @NonNull
             @Override
             protected LiveData<List<User>> loadFromDb() {
-                return  userDatabase.userDao().getUsers();
+                return userDao.loadUsers();
             }
 
             @NonNull
             @Override
-            protected LiveData<ApiResponse<List<User>>> createCall() {
-                LiveData<ApiResponse<List<User>>> response = webservice.getUser();
-                return response;
+            protected Call<List<User>> createCall() {
+                return webservice.getUser();
             }
         }.getAsLiveData();
-
-        return liveData;
     }
 
+
+    public LiveData<Resource<User>> loadOneUser(int id) {
+        return new NetworkBoundResource<User , User>(){
+
+            @Override
+            protected void saveCallResult(User item) {
+
+            }
+
+            @Override
+            protected boolean shouldFetch(User data) {
+                return false;
+            }
+
+            @NonNull
+            @Override
+            protected LiveData<User> loadFromDb() {
+                return userDao.load(id);
+            }
+
+            @NonNull
+            @Override
+            protected Call<User> createCall() {
+                return null;
+            }
+        }.getAsLiveData();
+    }
 }

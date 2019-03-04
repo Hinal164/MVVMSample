@@ -1,127 +1,101 @@
 package com.example.mvvmsampleproject;
 
+import android.annotation.SuppressLint;
 import android.os.AsyncTask;
+
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
-import androidx.lifecycle.Observer;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
-public abstract class NetworkBoundResource<ResultType, RequestType>  {
-    private final MediatorLiveData<Resource<ResultType>> result = new MediatorLiveData<>();
+public abstract class NetworkBoundResource<T, V>  {
+    private final MediatorLiveData<Resource<T>> result = new MediatorLiveData<>();
 
-    // Called to save the result of the API response into the database
-    @WorkerThread
-    protected abstract void saveCallResult(@NonNull RequestType item);
-
-    // Called with the data in the database to decide whether it should be
-    // fetched from the network.
     @MainThread
-    protected abstract boolean shouldFetch(@Nullable ResultType data);
+    protected NetworkBoundResource() {
+        result.setValue(Resource.loading(null));
 
-    // Called to get the cached data from the database
-    @NonNull
-    @MainThread
-    protected abstract LiveData<ResultType> loadFromDb();
+        // Always load the data from DB intially so that we have
+        LiveData<T> dbSource = loadFromDb();
 
-    // Called to create the API call.
-    @NonNull
-    @MainThread
-    protected abstract LiveData<ApiResponse<RequestType>> createCall();
-
-    // Called when the fetch fails. The child class may want to reset components
-    // like rate limiter.
-    @MainThread
-    protected void onFetchFailed() {
+        // Fetch the data from network and add it to the resource
+        result.addSource(dbSource, data -> {
+            result.removeSource(dbSource);
+            if (shouldFetch(data)) {
+                fetchFromNetwork(dbSource);
+            } else {
+                result.addSource(dbSource, newData -> {
+                    if(null != newData)
+                        result.setValue(Resource.success(newData)) ;
+                });
+            }
+        });
     }
 
-    // returns a LiveData that represents the resource
-    public final LiveData<Resource<ResultType>> getAsLiveData() {
-        return result;
-    }
 
-    @MainThread
-    public NetworkBoundResource() {
-        result.setValue(Resource.<ResultType>loading(null));
-        final LiveData<ResultType> dbSource = loadFromDb();
-        result.addSource(dbSource, new Observer<ResultType>() {
+    /**
+     * This method fetches the data from remoted service and save it to local db
+     * @param dbSource - Database source
+     */
+    private void fetchFromNetwork(final LiveData<T> dbSource) {
+        result.addSource(dbSource, newData -> result.setValue(Resource.loading(newData)));
+        createCall().enqueue(new Callback<V>() {
             @Override
-            public void onChanged(@Nullable ResultType data) {
+            public void onResponse(@NonNull Call<V> call, @NonNull Response<V> response) {
                 result.removeSource(dbSource);
-                if (shouldFetch(data)) {
-                    fetchFromNetwork(dbSource);
-                } else {
-                    result.addSource(dbSource, new Observer<ResultType>() {
-                        @Override
-                        public void onChanged(@Nullable ResultType newData) {
-                            result.setValue(Resource.success(newData));
-                        }
-                    });
-                }
-
+                saveResultAndReInit(response.body());
             }
-        });
 
-
-    }
-
-    private void fetchFromNetwork(final LiveData<ResultType> dbSource) {
-        final LiveData<ApiResponse<RequestType>> apiResponse = createCall();
-        // we re-attach dbSource as a new source,
-        // it will dispatch its latest value quickly
-        result.addSource(dbSource, new Observer<ResultType>() {
             @Override
-            public void onChanged(@Nullable ResultType newData) {
-                result.setValue(Resource.loading(newData));
-            }
-        });
-        result.addSource(apiResponse, new Observer<ApiResponse<RequestType>>() {
-            @Override
-            public void onChanged(@Nullable final ApiResponse<RequestType> response) {
-                result.removeSource(apiResponse);
+            public void onFailure(@NonNull Call<V> call, @NonNull Throwable t) {
                 result.removeSource(dbSource);
-                //noinspection ConstantConditions
-                if (response.isSuccessful()) {
-                    saveResultAndReInit(response);
-                } else {
-                    onFetchFailed();
-                    result.addSource(dbSource, new Observer<ResultType>() {
-                        @Override
-                        public void onChanged(@Nullable ResultType newData) {
-                            result.setValue(
-                                    Resource.error(response.getError().toString(), newData));
-                        }
-                    });
-                }
+                result.addSource(dbSource, newData -> result.setValue(Resource.error(t.getMessage(), newData)));
             }
         });
     }
 
+
+
+    @SuppressLint("StaticFieldLeak")
     @MainThread
-    private void saveResultAndReInit(final ApiResponse<RequestType> response) {
+    private void saveResultAndReInit(V response) {
         new AsyncTask<Void, Void, Void>() {
 
             @Override
             protected Void doInBackground(Void... voids) {
-                saveCallResult(response.body);
+                saveCallResult(response);
                 return null;
             }
 
             @Override
             protected void onPostExecute(Void aVoid) {
-                // we specially request a new live data,
-                // otherwise we will get immediately last cached value,
-                // which may not be updated with latest results received from network.
-                result.addSource(loadFromDb(), new Observer<ResultType>() {
-                    @Override
-                    public void onChanged(@Nullable ResultType newData) {
+                result.addSource(loadFromDb(), newData -> {
+                    if (null != newData)
                         result.setValue(Resource.success(newData));
-                    }
                 });
             }
         }.execute();
+    }
+
+    @WorkerThread
+    protected abstract void saveCallResult(V item);
+
+    protected abstract boolean shouldFetch(T data);
+
+    @NonNull
+    @MainThread
+    protected abstract LiveData<T> loadFromDb();
+
+    @NonNull
+    @MainThread
+    protected abstract Call<V> createCall();
+
+    public final LiveData<Resource<T>> getAsLiveData() {
+        return result;
     }
 }

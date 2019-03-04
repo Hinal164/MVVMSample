@@ -1,27 +1,50 @@
 package com.example.mvvmsampleproject;
 
+import android.app.Activity;
 import android.app.Application;
 
-public class MyApplication extends Application {
-    private static AppComponent appComponent;
+import com.example.mvvmsampleproject.di.DaggerAppComponent;
+
+import javax.inject.Inject;
+
+import dagger.android.AndroidInjector;
+import dagger.android.DispatchingAndroidInjector;
+import dagger.android.HasActivityInjector;
+
+public class MyApplication extends Application implements HasActivityInjector {
 
 
-    public static AppComponent getAppComponent() {
-        return appComponent;
+    private static MyApplication sInstance;
+
+
+    public static MyApplication getAppContext() {
+        return sInstance;
     }
 
 
 
+    private static synchronized void setInstance(MyApplication app) {
+        sInstance = app;
+    }
+    @Inject
+    DispatchingAndroidInjector<Activity> activityDispatchingInjector;
+
+    @Override
     public void onCreate() {
         super.onCreate();
+        initializeComponent();
+        setInstance(this);
+    }
 
-        appComponent = DaggerAppComponent.builder()
-                .appModule(new AppModule(this))
-               // .apiModule(new ApiModule())
-               // .networkModule(new NetModule("https://api.github.com"))
-               // .databaseModule(new DaoModule(this))
-              //  .repositoryModule(new RepositoryModule())
-                .build();
+    private void initializeComponent() {
+       DaggerAppComponent.builder()
+                .application(this)
+                .build()
+                .inject(this);
+    }
 
+    @Override
+    public AndroidInjector<Activity> activityInjector() {
+        return activityDispatchingInjector;
     }
 }

@@ -1,10 +1,10 @@
-package com.example.mvvmsampleproject;
+package com.example.mvvmsampleproject.database.entity;
 
 
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-@Entity
+@Entity(tableName = "users")
 public class User {
     private int userId;
     @PrimaryKey
