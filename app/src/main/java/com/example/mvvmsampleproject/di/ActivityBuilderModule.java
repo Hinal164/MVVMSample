@@ -8,6 +8,6 @@ import dagger.android.ContributesAndroidInjector;
 @Module
 public abstract class ActivityBuilderModule {
     @SuppressWarnings("unused")
-    @ContributesAndroidInjector(modules = FragmentBuilderModule.class)
+    @ContributesAndroidInjector/*(modules = FragmentBuilderModule.class)*/
     abstract MainActivity mainActivity();
 }

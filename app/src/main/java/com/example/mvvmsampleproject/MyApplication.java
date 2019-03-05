@@ -7,11 +7,13 @@ import com.example.mvvmsampleproject.di.DaggerAppComponent;
 
 import javax.inject.Inject;
 
+import androidx.fragment.app.Fragment;
 import dagger.android.AndroidInjector;
 import dagger.android.DispatchingAndroidInjector;
 import dagger.android.HasActivityInjector;
+import dagger.android.support.HasSupportFragmentInjector;
 
-public class MyApplication extends Application implements HasActivityInjector {
+public class MyApplication extends Application implements HasActivityInjector, HasSupportFragmentInjector {
 
 
     private static MyApplication sInstance;
@@ -21,13 +23,15 @@ public class MyApplication extends Application implements HasActivityInjector {
         return sInstance;
     }
 
-
-
     private static synchronized void setInstance(MyApplication app) {
         sInstance = app;
     }
+
     @Inject
     DispatchingAndroidInjector<Activity> activityDispatchingInjector;
+
+    @Inject
+    DispatchingAndroidInjector<Fragment> fragmentAndroidInjector;
 
     @Override
     public void onCreate() {
@@ -46,5 +50,10 @@ public class MyApplication extends Application implements HasActivityInjector {
     @Override
     public AndroidInjector<Activity> activityInjector() {
         return activityDispatchingInjector;
+    }
+
+    @Override
+    public AndroidInjector<Fragment> supportFragmentInjector() {
+        return fragmentAndroidInjector;
     }
 }

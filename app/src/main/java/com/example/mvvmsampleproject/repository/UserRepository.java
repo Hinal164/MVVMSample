@@ -66,10 +66,9 @@ public class UserRepository {
     }
 
     /**
-     * This method fetches the popular articles from the service.
+     * This method fetches the users from the service.
      * Once the fetching is done the data is cached to local db so that the app can even work offline
-     *
-     * @return List of articles
+     * @return List of users
      */
     public LiveData<Resource<List<User>>> loadUsers() {
         return new NetworkBoundResource<List<User>, List<User>>() {

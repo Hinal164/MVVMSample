@@ -15,10 +15,10 @@ import com.example.mvvmsampleproject.R;
 
 import javax.inject.Inject;
 
-public class MainActivity extends AppCompatActivity implements HasSupportFragmentInjector {
+public class MainActivity extends AppCompatActivity /*implements HasSupportFragmentInjector*/ {
 
-    @Inject
-    DispatchingAndroidInjector<Fragment> fragmentAndroidInjector;
+   /* @Inject
+    DispatchingAndroidInjector<Fragment> fragmentAndroidInjector;*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,8 +33,8 @@ public class MainActivity extends AppCompatActivity implements HasSupportFragmen
         fragmentTransaction.commit();
     }
 
-    @Override
+    /*@Override
     public AndroidInjector<Fragment> supportFragmentInjector() {
         return fragmentAndroidInjector;
-    }
+    }*/
 }

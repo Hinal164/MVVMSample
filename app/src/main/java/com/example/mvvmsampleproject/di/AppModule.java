@@ -18,7 +18,7 @@ import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-@Module(includes = ViewModelModule.class)
+@Module/*(includes = ViewModelModule.class)*/
 public class AppModule {
     @Provides
     @Singleton
@@ -46,13 +46,13 @@ public class AppModule {
 
     @Provides
     @Singleton
-    UserDatabase provideArticleDatabase(Application application) {
-        return Room.databaseBuilder(application, UserDatabase.class, "articles.db").build();
+    UserDatabase provideUserDatabase(Application application) {
+        return Room.databaseBuilder(application, UserDatabase.class, "users.db").build();
     }
 
     @Provides
     @Singleton
-    UserDao provideArticleDao(UserDatabase userDatabase) {
+    UserDao provideUserDao(UserDatabase userDatabase) {
         return userDatabase.userDao();
     }
 

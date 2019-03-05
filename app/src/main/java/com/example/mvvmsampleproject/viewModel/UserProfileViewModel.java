@@ -18,7 +18,6 @@ import androidx.lifecycle.ViewModel;
  */
 public class UserProfileViewModel extends ViewModel {
 
-
     private LiveData<Resource<List<User>>> userList;
     private MutableLiveData<Integer> user;
 
@@ -36,7 +35,7 @@ public class UserProfileViewModel extends ViewModel {
     }
 
     public LiveData<Resource<User>> observeUser() {
-        return Transformations.switchMap(user, newMovieId -> userRepository.loadOneUser(newMovieId));
+        return Transformations.switchMap(user, userId -> userRepository.loadOneUser(userId));
     }
 
     public void loadUser(int id) {
